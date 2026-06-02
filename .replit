@@ -24,6 +24,10 @@ args = "Portfolyo"
 task = "workflow.run"
 args = "API Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Mockup Sandbox"
+
 [[workflows.workflow]]
 name = "Portfolyo"
 author = "agent"
@@ -48,6 +52,19 @@ waitForPort = 3001
 [workflows.workflow.metadata]
 outputType = "console"
 
+[[workflows.workflow]]
+name = "Mockup Sandbox"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+isCanvasWorkflow = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8000 BASE_PATH=/__mockup/ cd artifacts/mockup-sandbox && PORT=8000 BASE_PATH=/__mockup/ pnpm dev"
+waitForPort = 8000
+
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
@@ -59,6 +76,10 @@ timeoutMs = 20000
 [[ports]]
 localPort = 3001
 externalPort = 3000
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [[ports]]
 localPort = 21113

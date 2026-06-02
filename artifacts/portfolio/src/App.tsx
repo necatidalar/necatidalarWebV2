@@ -110,7 +110,11 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [siteData, setSiteData] = useState<SiteData>(loadSiteData());
   const [technologies, setTechnologies] = useState(DEFAULT_TECHNOLOGIES);
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([
+    { id: 1, text: "Herhangi bir aptal kod yazabilir; bunu bir insan anlayabilecek şekilde yazmak ise yetenek gerektirir.", author: "Martin Fowler", title: "Yazılım Mühendisi & Yazar", displayOrder: 1, isActive: true },
+    { id: 2, text: "Basitlik, güvenilirliğin ön koşuludur.", author: "Edsger W. Dijkstra", title: "Bilgisayar Bilimcisi", displayOrder: 2, isActive: true },
+    { id: 3, text: "Önce çalışmasını sağla, ardından doğru yap, sonra hızlı yap.", author: "Kent Beck", title: "Yazılım Mühendisi", displayOrder: 3, isActive: true },
+  ]);
 
   useEffect(() => {
     fetch("/api/technologies")
