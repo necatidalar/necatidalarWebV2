@@ -45,7 +45,7 @@ export interface SiteData {
 
 export const defaultData: SiteData = {
   hero: {
-    name: "Ahmet Yılmaz",
+    name: "Necati DALAR",
     subtitle: "Yazılım geliştirici olarak web, mobil ve özel yazılım çözümleri geliştiriyorum.",
     description: "Modern, performanslı ve kullanıcı odaklı dijital ürünler tasarlıyor ve geliştiriyorum. Her satır kodda kalite ve hızı ön planda tutuyorum.",
     statusText: "Şu an yeni projelere açık",
