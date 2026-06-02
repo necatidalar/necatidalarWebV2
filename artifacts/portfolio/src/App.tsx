@@ -55,26 +55,27 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { loadSiteData, type SiteData } from "@/lib/siteData";
+import { getIcon } from "@/lib/icons";
 
 const serviceIcons = [Globe, Terminal, Database, Smartphone, Wrench];
 
-const technologies = [
-  { name: "HTML5", icon: SiHtml5 },
-  { name: "CSS3", icon: SiHtml5 },
-  { name: "JavaScript", icon: SiJavascript },
-  { name: "TypeScript", icon: SiTypescript },
-  { name: "React", icon: SiReact },
-  { name: "Next.js", icon: SiNextdotjs },
-  { name: "Node.js", icon: SiNodedotjs },
-  { name: "Python", icon: SiPython },
-  { name: "PHP", icon: SiPhp },
-  { name: "Laravel", icon: SiLaravel },
-  { name: "PostgreSQL", icon: SiPostgresql },
-  { name: "MySQL", icon: SiMysql },
-  { name: "MongoDB", icon: SiMongodb },
-  { name: "Tailwind", icon: SiTailwindcss },
-  { name: "Docker", icon: SiDocker },
-  { name: "Git", icon: SiGit },
+const DEFAULT_TECHNOLOGIES = [
+  { id: 0, name: "HTML5", iconKey: "SiHtml5" },
+  { id: 1, name: "CSS3", iconKey: "SiCss3" },
+  { id: 2, name: "JavaScript", iconKey: "SiJavascript" },
+  { id: 3, name: "TypeScript", iconKey: "SiTypescript" },
+  { id: 4, name: "React", iconKey: "SiReact" },
+  { id: 5, name: "Next.js", iconKey: "SiNextdotjs" },
+  { id: 6, name: "Node.js", iconKey: "SiNodedotjs" },
+  { id: 7, name: "Python", iconKey: "SiPython" },
+  { id: 8, name: "PHP", iconKey: "SiPhp" },
+  { id: 9, name: "Laravel", iconKey: "SiLaravel" },
+  { id: 10, name: "PostgreSQL", iconKey: "SiPostgresql" },
+  { id: 11, name: "MySQL", iconKey: "SiMysql" },
+  { id: 12, name: "MongoDB", iconKey: "SiMongodb" },
+  { id: 13, name: "Tailwind", iconKey: "SiTailwindcss" },
+  { id: 14, name: "Docker", iconKey: "SiDocker" },
+  { id: 15, name: "Git", iconKey: "SiGit" },
 ];
 
 const processSteps = [
@@ -99,6 +100,16 @@ function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [siteData, setSiteData] = useState<SiteData>(loadSiteData());
+  const [technologies, setTechnologies] = useState(DEFAULT_TECHNOLOGIES);
+
+  useEffect(() => {
+    fetch("/api/technologies")
+      .then(r => r.json())
+      .then((data: { id: number; name: string; iconKey: string; displayOrder: number }[]) => {
+        if (Array.isArray(data) && data.length > 0) setTechnologies(data);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -122,13 +133,26 @@ function App() {
     defaultValues: { name: "", email: "", subject: "", message: "" },
   });
 
-  function onSubmit(values: z.infer<typeof contactFormSchema>) {
-    console.log(values);
-    toast({
-      title: "Mesajınız gönderildi!",
-      description: "En kısa sürede size dönüş yapacağım.",
-    });
-    form.reset();
+  async function onSubmit(values: z.infer<typeof contactFormSchema>) {
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      if (!res.ok) throw new Error();
+      toast({
+        title: "Mesajınız gönderildi!",
+        description: "En kısa sürede size dönüş yapacağım.",
+      });
+      form.reset();
+    } catch {
+      toast({
+        title: "Gönderim başarısız",
+        description: "Lütfen daha sonra tekrar deneyin.",
+        variant: "destructive",
+      });
+    }
   }
 
   const fadeIn = {
@@ -418,9 +442,11 @@ function App() {
               Kullandığım Teknolojiler
             </p>
             <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-              {technologies.map((tech, index) => (
+              {technologies.map((tech, index) => {
+                const TechIcon = getIcon(tech.iconKey);
+                return (
                 <motion.div
-                  key={index}
+                  key={tech.id}
                   initial={{ opacity: 0, scale: 0.8 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
@@ -429,13 +455,14 @@ function App() {
                   title={tech.name}
                 >
                   <div className="text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all duration-300">
-                    <tech.icon size={40} />
+                    {TechIcon ? <TechIcon size={40} /> : <span className="text-2xl font-bold">{tech.name[0]}</span>}
                   </div>
                   <span className="text-xs font-medium text-muted-foreground/0 group-hover:text-muted-foreground transition-colors duration-300">
                     {tech.name}
                   </span>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
