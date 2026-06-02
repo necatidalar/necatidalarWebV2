@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { db, adminCredentialsTable, technologiesTable, smtpSettingsTable } from "@workspace/db";
+import { db, adminCredentialsTable, technologiesTable, smtpSettingsTable, quotesTable } from "@workspace/db";
 
 const defaultTechnologies = [
   { name: "HTML5", iconKey: "SiHtml5", displayOrder: 1 },
@@ -46,5 +46,33 @@ export async function seedDatabase() {
       toEmail: "",
     });
     console.log("SMTP settings row created.");
+  }
+
+  const existingQuotes = await db.select().from(quotesTable).limit(1);
+  if (existingQuotes.length === 0) {
+    await db.insert(quotesTable).values([
+      {
+        text: "Herhangi bir aptal kod yazabilir; bunu bir insan anlayabilecek şekilde yazmak ise yetenek gerektirir.",
+        author: "Martin Fowler",
+        title: "Yazılım Mühendisi & Yazar",
+        displayOrder: 1,
+        isActive: true,
+      },
+      {
+        text: "Basitlik, güvenilirliğin ön koşuludur.",
+        author: "Edsger W. Dijkstra",
+        title: "Bilgisayar Bilimcisi",
+        displayOrder: 2,
+        isActive: true,
+      },
+      {
+        text: "Önce çalışmasını sağla, ardından doğru yap, sonra hızlı yap.",
+        author: "Kent Beck",
+        title: "Yazılım Mühendisi",
+        displayOrder: 3,
+        isActive: true,
+      },
+    ]);
+    console.log("Default quotes seeded.");
   }
 }

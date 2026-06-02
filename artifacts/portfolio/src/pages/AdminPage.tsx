@@ -66,7 +66,16 @@ interface SmtpData {
   toEmail: string;
 }
 
-type Tab = "content" | "technologies" | "messages" | "settings";
+interface Quote {
+  id: number;
+  text: string;
+  author: string;
+  title: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+type Tab = "content" | "technologies" | "messages" | "quotes" | "settings";
 
 function LoginForm({ onLogin }: { onLogin: (username: string) => void }) {
   const [username, setUsername] = useState("");
@@ -516,6 +525,208 @@ function TechnologiesTab() {
   );
 }
 
+function QuotesTab() {
+  const { toast } = useToast();
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Quote | null>(null);
+  const [form, setForm] = useState({ text: "", author: "", title: "" });
+  const [saving, setSaving] = useState(false);
+
+  const loadQuotes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/quotes", { credentials: "same-origin" });
+      const data = await res.json() as Quote[];
+      setQuotes(data);
+    } catch {
+      toast({ title: "Hata", description: "Alıntılar yüklenemedi.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { loadQuotes(); }, [loadQuotes]);
+
+  function startEdit(quote: Quote) {
+    setEditing(quote);
+    setForm({ text: quote.text, author: quote.author, title: quote.title ?? "" });
+  }
+
+  function startNew() {
+    setEditing({ id: 0, text: "", author: "", title: "", displayOrder: 0, isActive: true });
+    setForm({ text: "", author: "", title: "" });
+  }
+
+  function cancelEdit() { setEditing(null); }
+
+  async function handleSave() {
+    if (!form.text.trim() || !form.author.trim()) {
+      toast({ title: "Hata", description: "Alıntı metni ve yazar zorunludur.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const isNew = editing!.id === 0;
+      const res = await fetch(
+        isNew ? "/api/admin/quotes" : `/api/admin/quotes/${editing!.id}`,
+        {
+          method: isNew ? "POST" : "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ text: form.text.trim(), author: form.author.trim(), title: form.title.trim() }),
+        }
+      );
+      if (!res.ok) throw new Error();
+      await loadQuotes();
+      setEditing(null);
+      toast({ title: isNew ? "Alıntı eklendi!" : "Alıntı güncellendi!" });
+    } catch {
+      toast({ title: "Hata", description: "Kaydedilemedi.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggle(quote: Quote) {
+    try {
+      await fetch(`/api/admin/quotes/${quote.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ isActive: !quote.isActive }),
+      });
+      await loadQuotes();
+    } catch {
+      toast({ title: "Hata", description: "Durum değiştirilemedi.", variant: "destructive" });
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Bu alıntıyı silmek istediğinizden emin misiniz?")) return;
+    try {
+      await fetch(`/api/admin/quotes/${id}`, { method: "DELETE", credentials: "same-origin" });
+      if (editing?.id === id) setEditing(null);
+      await loadQuotes();
+      toast({ title: "Alıntı silindi." });
+    } catch {
+      toast({ title: "Hata", description: "Silinemedi.", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-white">İlham Veren Alıntılar</h2>
+          <p className="text-muted-foreground mt-1">Ana sayfanın alt kısmındaki alıntı bölümünü buradan yönetin.</p>
+        </div>
+        <Button onClick={startNew} className="glow-primary gap-2">
+          <Plus className="h-4 w-4" /> Yeni Alıntı
+        </Button>
+      </div>
+
+      {editing !== null && (
+        <div className="bg-card border border-primary/20 rounded-2xl p-6 space-y-4">
+          <h3 className="text-white font-semibold">{editing.id === 0 ? "Yeni Alıntı Ekle" : "Alıntıyı Düzenle"}</h3>
+          <FieldGroup label="Alıntı Metni">
+            <Textarea
+              className={textareaClass}
+              rows={4}
+              value={form.text}
+              onChange={e => setForm(f => ({ ...f, text: e.target.value }))}
+              placeholder="Alıntı metnini buraya yazın…"
+            />
+          </FieldGroup>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <FieldGroup label="Yazar">
+              <Input
+                className={inputClass}
+                value={form.author}
+                onChange={e => setForm(f => ({ ...f, author: e.target.value }))}
+                placeholder="Martin Fowler"
+              />
+            </FieldGroup>
+            <FieldGroup label="Unvan / Açıklama (isteğe bağlı)">
+              <Input
+                className={inputClass}
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Yazılım Mühendisi"
+              />
+            </FieldGroup>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" className="border-white/10 hover:bg-white/5 text-muted-foreground hover:text-white" onClick={cancelEdit}>
+              İptal
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="glow-primary gap-2">
+              {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? "Kaydediliyor…" : "Kaydet"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Yükleniyor…
+        </div>
+      ) : quotes.length === 0 ? (
+        <div className="bg-card border border-white/5 rounded-2xl py-20 flex flex-col items-center text-muted-foreground">
+          <div className="text-6xl font-serif text-white/10 mb-4">&ldquo;</div>
+          <p>Henüz alıntı eklenmemiş.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {quotes.map(quote => (
+            <div
+              key={quote.id}
+              className={`bg-card border rounded-2xl p-5 transition-all ${quote.isActive ? "border-white/5" : "border-white/5 opacity-50"}`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/80 text-sm leading-relaxed line-clamp-2">
+                    <span className="text-primary/60 font-serif text-xl mr-1">&ldquo;</span>{quote.text}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">{quote.author}</span>
+                    {quote.title && <span className="text-xs text-primary/70 font-mono">— {quote.title}</span>}
+                    {!quote.isActive && <span className="text-xs text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full">Gizli</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleToggle(quote)}
+                    className="p-2 text-muted-foreground hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                    title={quote.isActive ? "Gizle" : "Göster"}
+                  >
+                    {quote.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => startEdit(quote)}
+                    className="p-2 text-muted-foreground hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                    title="Düzenle"
+                  >
+                    <Save className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(quote.id)}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-white/5"
+                    title="Sil"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MessagesTab() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -881,6 +1092,7 @@ export default function AdminPage() {
     { key: "content", label: "Site İçeriği", icon: <Monitor className="h-4 w-4" /> },
     { key: "technologies", label: "Teknolojiler", icon: <Cpu className="h-4 w-4" /> },
     { key: "messages", label: "Mesajlar", icon: <MessageSquare className="h-4 w-4" /> },
+    { key: "quotes", label: "Alıntılar", icon: <Mail className="h-4 w-4" /> },
     { key: "settings", label: "Ayarlar", icon: <Settings className="h-4 w-4" /> },
   ];
 
@@ -928,6 +1140,7 @@ export default function AdminPage() {
           {activeTab === "content" && <ContentTab />}
           {activeTab === "technologies" && <TechnologiesTab />}
           {activeTab === "messages" && <MessagesTab />}
+          {activeTab === "quotes" && <QuotesTab />}
           {activeTab === "settings" && <SettingsTab username={currentUser} />}
         </motion.div>
       </main>

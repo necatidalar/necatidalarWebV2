@@ -57,6 +57,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { loadSiteData, type SiteData } from "@/lib/siteData";
 import { getIcon } from "@/lib/icons";
 
+interface Quote {
+  id: number;
+  text: string;
+  author: string;
+  title: string;
+  displayOrder: number;
+  isActive: boolean;
+}
+
 const serviceIcons = [Globe, Terminal, Database, Smartphone, Wrench];
 
 const DEFAULT_TECHNOLOGIES = [
@@ -101,12 +110,22 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [siteData, setSiteData] = useState<SiteData>(loadSiteData());
   const [technologies, setTechnologies] = useState(DEFAULT_TECHNOLOGIES);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
 
   useEffect(() => {
     fetch("/api/technologies")
       .then(r => r.json())
       .then((data: { id: number; name: string; iconKey: string; displayOrder: number }[]) => {
         if (Array.isArray(data) && data.length > 0) setTechnologies(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/quotes")
+      .then(r => r.json())
+      .then((data: Quote[]) => {
+        if (Array.isArray(data)) setQuotes(data);
       })
       .catch(() => {});
   }, []);
@@ -763,6 +782,52 @@ function App() {
           </div>
         </section>
       </main>
+
+      {/* Quotes Section */}
+      {quotes.length > 0 && (
+        <section className="py-24 md:py-32 px-6 bg-card/20 border-y border-white/5">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeIn}
+              className="text-center mb-16"
+            >
+              <span className="font-mono text-primary text-sm tracking-widest uppercase">İlham</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mt-2">İlham Veren Alıntılar</h2>
+            </motion.div>
+
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={staggerContainer}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {quotes.map((quote, index) => (
+                <motion.div
+                  key={quote.id}
+                  variants={fadeIn}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-card border border-white/5 rounded-2xl p-8 flex flex-col relative overflow-hidden group hover:border-primary/20 transition-colors duration-300"
+                >
+                  <div className="text-7xl font-serif text-primary/10 leading-none select-none absolute top-4 left-6 group-hover:text-primary/20 transition-colors duration-300">&ldquo;</div>
+                  <p className="text-muted-foreground leading-relaxed text-sm md:text-base relative z-10 flex-1 mt-6">
+                    {quote.text}
+                  </p>
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                    <p className="text-white font-semibold text-sm">{quote.author}</p>
+                    {quote.title && (
+                      <p className="text-primary/70 text-xs mt-0.5 font-mono">{quote.title}</p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="py-8 border-t border-white/5 bg-background text-center md:text-left">
